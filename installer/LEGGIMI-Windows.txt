@@ -1,0 +1,13 @@
+AEROVOX 2000 - Windows
+======================
+
+INSTALLAZIONE
+1. Copia la cartella "AeroVox 2000.vst3" in:
+       C:\Program Files\Common Files\VST3\
+2. Apri FL Studio (o il tuo DAW) e fai una nuova scansione dei plugin:
+       FL Studio: Options > Manage plugins > Find plugins
+3. Lo trovi come effetto: "AeroVox 2000" (produttore AeroVox Audio).
+
+"AeroVox 2000.exe" e' la versione standalone (funziona senza DAW, usa il microfono).
+
+Se Windows mostra "PC protetto da Windows" sull'exe: "Ulteriori informazioni" > "Esegui comunque".

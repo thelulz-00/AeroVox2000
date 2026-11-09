@@ -1,0 +1,19 @@
+AEROVOX 2000 - macOS (Apple Silicon e Intel)
+============================================
+
+INSTALLAZIONE FACILE
+1. Tasto destro su "Installa AeroVox 2000.pkg" > Apri > Apri.
+   (Installa sia AU per Logic che VST3 per FL Studio, Ableton, ecc.)
+
+INSTALLAZIONE MANUALE
+- "AeroVox 2000.component" -> /Library/Audio/Plug-Ins/Components/   (Logic Pro, GarageBand)
+- "AeroVox 2000.vst3"      -> /Library/Audio/Plug-Ins/VST3/         (FL Studio, Ableton, Cubase...)
+
+IMPORTANTE - il plugin non e' firmato con un certificato Apple a pagamento.
+Se macOS lo blocca, apri il Terminale e incolla:
+
+    sudo xattr -cr /Library/Audio/Plug-Ins/Components/"AeroVox 2000.component"
+    sudo xattr -cr /Library/Audio/Plug-Ins/VST3/"AeroVox 2000.vst3"
+
+Poi riapri il DAW. In Logic: Logic Pro > Impostazioni > Plug-in Manager > "Reimposta e riscansiona".
+In Logic lo trovi in: Audio Units > AeroVox Audio > AeroVox 2000.

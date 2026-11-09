@@ -1,0 +1,107 @@
+name: Build AeroVox 2000
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows (VST3, 64-bit)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "AeroVox2000-Windows"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item -Recurse "build/AeroVox2000_artefacts/Release/VST3/AeroVox 2000.vst3" "$out/"
+          Copy-Item "build/AeroVox2000_artefacts/Release/Standalone/AeroVox 2000.exe" "$out/"
+          Copy-Item "installer/LEGGIMI-Windows.txt" "$out/LEGGIMI.txt"
+          Compress-Archive -Path "$out/*" -DestinationPath "AeroVox2000-Windows.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AeroVox2000-Windows
+          path: AeroVox2000-Windows.zip
+
+  macos:
+    name: macOS (VST3 + AU, Apple Silicon + Intel)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B build -G Xcode
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Ad-hoc sign
+        run: |
+          cd build/AeroVox2000_artefacts/Release
+          codesign --force --deep -s - "VST3/AeroVox 2000.vst3"
+          codesign --force --deep -s - "AU/AeroVox 2000.component"
+          codesign --force --deep -s - "Standalone/AeroVox 2000.app"
+
+      - name: Validate Audio Unit (auval)
+        continue-on-error: true
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R "build/AeroVox2000_artefacts/Release/AU/AeroVox 2000.component" ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar || true
+          auval -v aumf Av2k Aerv
+
+      - name: Package (.zip and .pkg installer)
+        run: |
+          R=build/AeroVox2000_artefacts/Release
+          OUT=AeroVox2000-macOS
+          mkdir -p "$OUT"
+          cp -R "$R/VST3/AeroVox 2000.vst3" "$R/AU/AeroVox 2000.component" "$R/Standalone/AeroVox 2000.app" "$OUT/"
+          cp installer/LEGGIMI-macOS.txt "$OUT/LEGGIMI.txt"
+
+          ROOT=pkgroot
+          mkdir -p "$ROOT/Library/Audio/Plug-Ins/VST3" "$ROOT/Library/Audio/Plug-Ins/Components"
+          cp -R "$R/VST3/AeroVox 2000.vst3" "$ROOT/Library/Audio/Plug-Ins/VST3/"
+          cp -R "$R/AU/AeroVox 2000.component" "$ROOT/Library/Audio/Plug-Ins/Components/"
+          pkgbuild --root "$ROOT" --install-location / \
+                   --identifier com.aerovoxaudio.aerovox2000.pkg --version 1.0.0 \
+                   "$OUT/Installa AeroVox 2000.pkg"
+
+          ditto -c -k --keepParent "$OUT" AeroVox2000-macOS.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AeroVox2000-macOS
+          path: AeroVox2000-macOS.zip
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AeroVox2000-Windows/AeroVox2000-Windows.zip
+            dist/AeroVox2000-macOS/AeroVox2000-macOS.zip
