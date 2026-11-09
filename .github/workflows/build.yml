@@ -93,7 +93,7 @@ jobs:
 
   release:
     name: Publish release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: [windows, macos]
     runs-on: ubuntu-latest
     steps:
@@ -102,6 +102,14 @@ jobs:
           path: dist
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
+          name: AeroVox 2000 v1.0.0
+          make_latest: true
+          body: |
+            **Windows** - scarica `AeroVox2000-Windows.zip` (VST3 per FL Studio, Ableton, Cubase... + standalone .exe)
+            **Mac** - scarica `AeroVox2000-macOS.zip` (AU per Logic, VST3, app standalone e installer .pkg; Apple Silicon + Intel)
+
+            Istruzioni di installazione nel file LEGGIMI.txt dentro ogni zip.
           files: |
             dist/AeroVox2000-Windows/AeroVox2000-Windows.zip
             dist/AeroVox2000-macOS/AeroVox2000-macOS.zip
