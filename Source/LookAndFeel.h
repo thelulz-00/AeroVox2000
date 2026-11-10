@@ -162,6 +162,41 @@ public:
         g.fillPath (arrow);
     }
 
+    // bevelled hardware push-button; toggle buttons get a red "REC" LED
+    void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool highlighted, bool down) override
+    {
+        auto r = b.getLocalBounds().toFloat().reduced (0.5f);
+        const bool pressed = down || (b.getClickingTogglesState() && b.getToggleState());
+        g.setGradientFill (juce::ColourGradient (pressed ? juce::Colour (0xff9da2a8) : juce::Colour (0xffe4e7ea), 0, r.getY(),
+                                                 pressed ? juce::Colour (0xffc3c7cc) : juce::Colour (0xffa9aeb4), 0, r.getBottom(), false));
+        g.fillRoundedRectangle (r, 3.0f);
+        g.setColour (juce::Colours::black.withAlpha (highlighted ? 0.75f : 0.55f));
+        g.drawRoundedRectangle (r, 3.0f, 1.0f);
+        Theme::bevel (g, r.reduced (1.0f), pressed);
+
+        if (b.getClickingTogglesState())
+        {
+            const bool on = b.getToggleState();
+            const float d = r.getHeight() * 0.4f;
+            const juce::Rectangle<float> led (r.getX() + 8.0f, r.getCentreY() - d * 0.5f, d, d);
+            const juce::Colour red (0xffff3b30);
+            if (on) { g.setColour (red.withAlpha (0.35f)); g.fillEllipse (led.expanded (2.5f)); }
+            g.setColour (on ? red : juce::Colour (0xff4a2020));
+            g.fillEllipse (led);
+            g.setColour (juce::Colours::black.withAlpha (0.6f));
+            g.drawEllipse (led, 0.8f);
+        }
+    }
+
+    void drawButtonText (juce::Graphics& g, juce::TextButton& b, bool, bool) override
+    {
+        g.setColour (b.isEnabled() ? Theme::textDark : Theme::textDark.withAlpha (0.4f));
+        g.setFont (Theme::font (10.5f, true));
+        auto r = b.getLocalBounds();
+        if (b.getClickingTogglesState()) r.removeFromLeft (14);
+        g.drawText (b.getButtonText(), r, juce::Justification::centred);
+    }
+
     juce::Font getComboBoxFont (juce::ComboBox&) override { return Theme::font (11.0f); }
     juce::Font getPopupMenuFont() override { return Theme::font (12.0f); }
 

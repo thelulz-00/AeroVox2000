@@ -44,6 +44,24 @@ struct Biquad
              (A + 1) - (A - 1) * c - sa);
     }
 
+    // RBJ peaking bell
+    void setPeak (double fs, double f, double q, double gainDb) noexcept
+    {
+        const double A = std::pow (10.0, gainDb / 40.0);
+        const double w0 = 2.0 * kBiquadPi * f / fs, alpha = std::sin (w0) / (2.0 * q), c = std::cos (w0);
+        set (1.0 + alpha * A, -2.0 * c, 1.0 - alpha * A, 1.0 + alpha / A, -2.0 * c, 1.0 - alpha / A);
+    }
+
+    // magnitude response in dB at frequency f
+    double magnitudeDb (double fs, double f) const noexcept
+    {
+        const double w = 2.0 * kBiquadPi * f / fs;
+        const double c1 = std::cos (w), s1 = std::sin (w), c2 = std::cos (2 * w), s2 = std::sin (2 * w);
+        const double nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
+        const double dr = 1.0 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
+        return 10.0 * std::log10 ((nr * nr + ni * ni) / (dr * dr + di * di) + 1e-30);
+    }
+
 private:
     void set (double nb0, double nb1, double nb2, double na0, double na1, double na2) noexcept
     {

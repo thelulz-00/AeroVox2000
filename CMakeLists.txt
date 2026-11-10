@@ -82,3 +82,4 @@ if(AEROVOX_BUILD_TESTS)
     target_link_libraries(AeroVoxSnapshot PRIVATE
         juce::juce_audio_utils juce::juce_dsp juce::juce_recommended_config_flags)
 endif()
+add_subdirectory(RoomFix)

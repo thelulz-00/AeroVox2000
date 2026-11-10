@@ -1,4 +1,4 @@
-name: Build AeroVox 2000
+name: Build plugins
 
 on:
   push:
@@ -26,17 +26,23 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $out = "AeroVox2000-Windows"
-          New-Item -ItemType Directory -Force -Path $out | Out-Null
-          Copy-Item -Recurse "build/AeroVox2000_artefacts/Release/VST3/AeroVox 2000.vst3" "$out/"
-          Copy-Item "build/AeroVox2000_artefacts/Release/Standalone/AeroVox 2000.exe" "$out/"
-          Copy-Item "installer/LEGGIMI-Windows.txt" "$out/LEGGIMI.txt"
-          Compress-Archive -Path "$out/*" -DestinationPath "AeroVox2000-Windows.zip"
+          function Pack($target, $product, $readme) {
+            $out = "$target-Windows"
+            New-Item -ItemType Directory -Force -Path $out | Out-Null
+            $base = "build/$target" + "_artefacts/Release"
+            if (-not (Test-Path $base)) { $base = "build/RoomFix/$target" + "_artefacts/Release" }
+            Copy-Item -Recurse "$base/VST3/$product.vst3" "$out/"
+            Copy-Item "$base/Standalone/$product.exe" "$out/"
+            Copy-Item $readme "$out/LEGGIMI.txt"
+            Compress-Archive -Path "$out/*" -DestinationPath "$target-Windows.zip"
+          }
+          Pack "AeroVox2000" "AeroVox 2000" "installer/LEGGIMI-Windows.txt"
+          Pack "RoomFix2000" "RoomFix 2000" "installer/LEGGIMI-RoomFix-Windows.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AeroVox2000-Windows
-          path: AeroVox2000-Windows.zip
+          name: Windows
+          path: '*-Windows.zip'
 
   macos:
     name: macOS (VST3 + AU, Apple Silicon + Intel)
@@ -55,41 +61,39 @@ jobs:
 
       - name: Ad-hoc sign
         run: |
-          cd build/AeroVox2000_artefacts/Release
-          codesign --force --deep -s - "VST3/AeroVox 2000.vst3"
-          codesign --force --deep -s - "AU/AeroVox 2000.component"
-          codesign --force --deep -s - "Standalone/AeroVox 2000.app"
+          for R in build/AeroVox2000_artefacts/Release build/RoomFix/RoomFix2000_artefacts/Release; do
+            for f in "$R"/VST3/*.vst3 "$R"/AU/*.component "$R"/Standalone/*.app; do codesign --force --deep -s - "$f"; done
+          done
 
-      - name: Validate Audio Unit (auval)
+      - name: Validate Audio Units (auval)
         continue-on-error: true
         run: |
           mkdir -p ~/Library/Audio/Plug-Ins/Components
-          cp -R "build/AeroVox2000_artefacts/Release/AU/AeroVox 2000.component" ~/Library/Audio/Plug-Ins/Components/
+          cp -R build/AeroVox2000_artefacts/Release/AU/*.component build/RoomFix/RoomFix2000_artefacts/Release/AU/*.component ~/Library/Audio/Plug-Ins/Components/
           killall -9 AudioComponentRegistrar || true
           auval -v aumf Av2k Aerv
+          auval -v aufx Rfx2 Aerv
 
       - name: Package (.zip and .pkg installer)
         run: |
-          R=build/AeroVox2000_artefacts/Release
-          OUT=AeroVox2000-macOS
-          mkdir -p "$OUT"
-          cp -R "$R/VST3/AeroVox 2000.vst3" "$R/AU/AeroVox 2000.component" "$R/Standalone/AeroVox 2000.app" "$OUT/"
-          cp installer/LEGGIMI-macOS.txt "$OUT/LEGGIMI.txt"
-
-          ROOT=pkgroot
-          mkdir -p "$ROOT/Library/Audio/Plug-Ins/VST3" "$ROOT/Library/Audio/Plug-Ins/Components"
-          cp -R "$R/VST3/AeroVox 2000.vst3" "$ROOT/Library/Audio/Plug-Ins/VST3/"
-          cp -R "$R/AU/AeroVox 2000.component" "$ROOT/Library/Audio/Plug-Ins/Components/"
-          pkgbuild --root "$ROOT" --install-location / \
-                   --identifier com.aerovoxaudio.aerovox2000.pkg --version 1.0.0 \
-                   "$OUT/Installa AeroVox 2000.pkg"
-
-          ditto -c -k --keepParent "$OUT" AeroVox2000-macOS.zip
+          pack() { # target product readme bundle-id
+            R="$1"; [ -d "build/$1_artefacts" ] && R="build/$1_artefacts/Release" || R="build/RoomFix/$1_artefacts/Release"
+            OUT="$1-macOS"; ROOT="pkgroot-$1"
+            mkdir -p "$OUT" "$ROOT/Library/Audio/Plug-Ins/VST3" "$ROOT/Library/Audio/Plug-Ins/Components"
+            cp -R "$R/VST3/$2.vst3" "$R/AU/$2.component" "$R/Standalone/$2.app" "$OUT/"
+            cp "$3" "$OUT/LEGGIMI.txt"
+            cp -R "$R/VST3/$2.vst3" "$ROOT/Library/Audio/Plug-Ins/VST3/"
+            cp -R "$R/AU/$2.component" "$ROOT/Library/Audio/Plug-Ins/Components/"
+            pkgbuild --root "$ROOT" --install-location / --identifier "$4" --version 1.1.0 "$OUT/Installa $2.pkg"
+            ditto -c -k --keepParent "$OUT" "$1-macOS.zip"
+          }
+          pack AeroVox2000 "AeroVox 2000" installer/LEGGIMI-macOS.txt com.aerovoxaudio.aerovox2000.pkg
+          pack RoomFix2000 "RoomFix 2000" installer/LEGGIMI-RoomFix-macOS.txt com.aerovoxaudio.roomfix2000.pkg
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AeroVox2000-macOS
-          path: AeroVox2000-macOS.zip
+          name: macOS
+          path: '*-macOS.zip'
 
   release:
     name: Publish release
@@ -100,16 +104,22 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
-          name: AeroVox 2000 v1.0.0
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1.0' }}
+          name: AeroVox 2000 + RoomFix 2000 (v1.1.0)
           make_latest: true
+          files: dist/*.zip
           body: |
-            **Windows** - scarica `AeroVox2000-Windows.zip` (VST3 per FL Studio, Ableton, Cubase... + standalone .exe)
-            **Mac** - scarica `AeroVox2000-macOS.zip` (AU per Logic, VST3, app standalone e installer .pkg; Apple Silicon + Intel)
+            ## RoomFix 2000 (nuovo)
+            Toglie le risonanze della stanza imparandole da una registrazione dell'ambiente, senza toccare la voce.
+            - **Windows**: `RoomFix2000-Windows.zip`
+            - **Mac**: `RoomFix2000-macOS.zip` (AU per Logic + VST3 + installer .pkg, Apple Silicon + Intel)
+
+            ## AeroVox 2000
+            Vocoder, EQ anti-risonanze automatico, Fresh Air, Reverb.
+            - **Windows**: `AeroVox2000-Windows.zip`
+            - **Mac**: `AeroVox2000-macOS.zip`
 
             Istruzioni di installazione nel file LEGGIMI.txt dentro ogni zip.
-          files: |
-            dist/AeroVox2000-Windows/AeroVox2000-Windows.zip
-            dist/AeroVox2000-macOS/AeroVox2000-macOS.zip

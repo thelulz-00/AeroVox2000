@@ -1,4 +1,56 @@
-# AeroVox 2000
+# AeroVox Audio — AeroVox 2000 + RoomFix 2000
+
+Due plugin VST3 + Audio Unit per **Windows** e **macOS** (FL Studio, Logic Pro, Ableton, Cubase, Reaper...).
+Download pronti: pagina **Releases** di questo repository.
+
+---
+
+## RoomFix 2000 — toglie le risonanze della stanza, non quelle della voce
+
+![RoomFix 2000](docs/roomfix.png)
+
+**Idea:** le risonanze brutte della stanza sono *sempre alle stesse frequenze* (dipendono dalle pareti), mentre
+quelle della voce si spostano con le note. RoomFix impara le prime da una registrazione dell'ambiente e corregge solo quelle.
+
+### Come si usa
+1. Registra **10-30 s della stanza** con lo stesso microfono e nella stessa posizione. Meglio se nella stanza c'è
+   del suono che la fa "suonare": qualche battito di mani, del rumore rosa da una cassa o dal telefono.
+   Il solo silenzio funziona se si sente il rumore di fondo, ma è meno preciso.
+2. Metti RoomFix 2000 sulla traccia vocale.
+3. **LOAD ROOM RECORDING...** e scegli il file, **oppure** premi **LEARN**, fai suonare la parte della traccia dove
+   c'è solo la stanza (o manda la traccia della stanza nel sidechain) e premi di nuovo LEARN.
+4. Il display mostra l'impronta della stanza (bianco), la voce (azzurro) e la correzione in tempo reale (arancione),
+   con le frequenze delle risonanze trovate.
+
+| Controllo | Cosa fa |
+|---|---|
+| **Amount** | Quanto del picco della stanza togliere (100% = lo appiattisce del tutto) |
+| **Threshold** | Corregge solo i picchi che sporgono almeno di questi dB (default 3 dB) |
+| **Dynamic** | 0% = EQ fisso. 100% = taglia solo nei momenti in cui la voce eccita quella risonanza |
+| **Low / High** | Intervallo di frequenze in cui cercare (default 30 Hz – 8 kHz) |
+| **Listen Cut** | Ascolti solo ciò che viene tolto |
+
+Il profilo della stanza viene salvato dentro il progetto del DAW.
+
+### Come funziona
+1. **Analisi della stanza** (una volta, offline): FFT lunghissima (32768 punti, risoluzione ~1.5 Hz) mediata su
+   tutta la registrazione. Si calcola la "forma media" dello spettro (media mobile di ~½ ottava, ripetuta 5 volte
+   tagliando i picchi così che non la alzino) e si cercano i picchi che sporgono sopra di essa. Per ognuno si misurano
+   **frequenza** (con interpolazione, precisione < 0.5%), **larghezza (Q)** e **quanti dB aggiunge la stanza**.
+2. **Correzione** (in tempo reale, latenza zero): un filtro a campana stretto per ogni risonanza (max 16), centrato
+   esattamente lì e con la stessa larghezza. **Regola fondamentale: non taglia mai più di quanto la stanza aggiunge**
+   (dB misurati × Amount). Le altre frequenze non hanno nessun filtro, quindi la voce resta intatta.
+3. **Modalità dinamica:** per ogni risonanza confronta l'energia nella banda stretta con quella di una banda larga
+   attorno (normalizzata così che uno spettro piatto valga 0 dB). Se la voce in quel momento "accende" la risonanza
+   il filtro taglia; altrimenti si apre (attacco 10 ms, rilascio 150 ms).
+
+Test inclusi (stanza simulata con picchi a 87, 163 e 1240 Hz): frequenze trovate entro lo 0.2%, nessun falso picco,
+dopo la correzione i picchi passano da +6/+8 dB a +1/+2 dB, toni della voce lontani dalle risonanze cambiano meno di 0.15 dB, CPU ~0.2%.
+
+---
+
+## AeroVox 2000
+
 
 Plugin audio per voce (VST3 + Audio Unit) per **Windows** e **macOS**.
 Funziona in FL Studio, Logic Pro, Ableton Live, Cubase, Studio One, Reaper, GarageBand e tutti i DAW VST3/AU.

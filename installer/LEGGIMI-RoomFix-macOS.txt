@@ -1,0 +1,31 @@
+ROOMFIX 2000 - macOS (Apple Silicon e Intel)
+============================================
+
+INSTALLAZIONE FACILE
+1. Tasto destro su "Installa RoomFix 2000.pkg" > Apri > Apri.
+   (Installa sia AU per Logic che VST3 per FL Studio, Ableton, ecc.)
+
+INSTALLAZIONE MANUALE
+- "RoomFix 2000.component" -> /Library/Audio/Plug-Ins/Components/   (Logic Pro, GarageBand)
+- "RoomFix 2000.vst3"      -> /Library/Audio/Plug-Ins/VST3/         (FL Studio, Ableton, Cubase...)
+
+IMPORTANTE - il plugin non e' firmato con un certificato Apple a pagamento.
+Se macOS lo blocca, apri il Terminale e incolla:
+
+    sudo xattr -cr /Library/Audio/Plug-Ins/Components/"RoomFix 2000.component"
+    sudo xattr -cr /Library/Audio/Plug-Ins/VST3/"RoomFix 2000.vst3"
+
+Poi riapri il DAW. In Logic: Logic Pro > Impostazioni > Plug-in Manager > "Reimposta e riscansiona".
+In Logic lo trovi in: Audio Units > AeroVox Audio > RoomFix 2000.
+
+Se Windows mostra "PC protetto da Windows" sull'exe: "Ulteriori informazioni" > "Esegui comunque".
+
+COME SI USA
+1. Registra 10-30 secondi della stanza vuota con lo stesso microfono e nella stessa posizione
+   (meglio ancora: batti qualche volta le mani o fai suonare del rumore da una cassa/telefono).
+2. Metti RoomFix 2000 sulla traccia della voce.
+3. Premi "LOAD ROOM RECORDING..." e scegli la registrazione della stanza
+   OPPURE premi LEARN, fai suonare la parte della traccia dove c'e' solo la stanza e premi di nuovo LEARN.
+4. Regola AMOUNT (quanto togliere) e DYNAMIC (0% = EQ fisso, 100% = taglia solo quando la voce fa risuonare la stanza).
+   LISTEN CUT ti fa sentire solo quello che viene tolto.
+Il profilo della stanza viene salvato dentro il progetto.
